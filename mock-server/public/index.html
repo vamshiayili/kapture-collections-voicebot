@@ -86,7 +86,7 @@
           <span class="nav-icon">⚙️</span> CRM Editor
         </button>
         <button id="navDocs" class="nav-item" onclick="navigateTo('docs')">
-          <span class="nav-icon">📖</span> API & Prompts
+          <span class="nav-icon">⚙️</span> Vapi Agent Studio
         </button>
       </nav>
 
@@ -525,53 +525,202 @@
           </div>
         </section>
 
-        <!-- SECTION 5: API INTEGRATION DOCS -->
+        <!-- SECTION 5: VAPI AGENT STUDIO -->
         <section id="sectionDocs" class="tab-content">
-          <div class="docs-layout">
+          <div class="vapi-studio-layout">
             
-            <div class="glass-card">
-              <h2>Vapi System Prompt Reference</h2>
-              <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">This prompt is injected into the Vapi agent configuration window to guide conversational logic and compliance rules.</p>
-              <textarea readonly style="height: 280px; width: 100%; background: #06090e; color: #a5d6ff; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-family: monospace; font-size: 12px; resize: none;">
-# IDENTITY & ROLE
-You are "Maya", an empathetic, professional, and compliant AI collections specialist for Kapture Finance.
-Your goal is to reach out to customers with overdue loan accounts, verify their identity securely, explain their account status politely, negotiate a realistic resolution, and record the outcome.
+            <!-- Left Panel: Vapi Configuration Editor -->
+            <div class="studio-main-panel">
+              
+              <!-- Header Bar -->
+              <div class="studio-header">
+                <div class="studio-title-area">
+                  <div class="studio-title">Maya — Kapture Finance (Copy)</div>
+                  <div class="studio-meta">
+                    <span class="status-pill" style="background: rgba(255,255,255,0.05); color: #a5d6ff; border: 1px solid rgba(255,255,255,0.1); padding: 1px 6px; font-size: 10px; border-radius: 4px;">v3</span>
+                    <code>a74fsb...63df77</code>
+                  </div>
+                </div>
+                <div class="studio-actions">
+                  <button class="btn-studio-secondary">Composer</button>
+                  <button class="btn-studio-talk" id="studioTalkBtn" onclick="toggleStudioCall()">
+                    <span id="studioTalkIcon">📞</span> <span id="studioTalkText">Talk</span>
+                  </button>
+                  <button class="btn-studio-secondary" style="border-color: rgba(16, 185, 129, 0.4); color: #10b981;">✓ Published</button>
+                </div>
+              </div>
 
-# CRITICAL PRIVACY RULE
-- NEVER disclose balance, due dates, or creditor names prior to verified customer authentication.
-- GATE information strictly behind verification PIN checks.
-              </textarea>
+              <!-- Sub-tabs -->
+              <div class="studio-tabs-row">
+                <button class="studio-tab-btn active">Assistant</button>
+                <button class="studio-tab-btn">Logs</button>
+                <button class="studio-tab-btn">Tools</button>
+                <button class="studio-tab-btn">Analysis</button>
+                <button class="studio-tab-btn">Advanced</button>
+              </div>
+
+              <!-- Cost & Latency Stats -->
+              <div class="studio-metrics-row">
+                <!-- Cost Card -->
+                <div class="metric-studio-card">
+                  <div class="metric-studio-header">
+                    <span class="metric-studio-title">Cost</span>
+                    <span class="metric-studio-value">~$0.08<span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">/min</span></span>
+                  </div>
+                  <div class="metric-bar-wrapper">
+                    <div class="metric-bar-segment" style="width: 55%; background: #10b981;" title="Speech synthesis: 55%"></div>
+                    <div class="metric-bar-segment" style="width: 15%; background: #f59e0b;" title="Model: 15%"></div>
+                    <div class="metric-bar-segment" style="width: 30%; background: #a855f7;" title="Platform fees: 30%"></div>
+                  </div>
+                  <div class="preset-pill-group">
+                    <button class="preset-pill-btn">Balanced</button>
+                    <button class="preset-pill-btn active">Ultra Fast</button>
+                    <button class="preset-pill-btn">Cost Saver</button>
+                    <button class="preset-pill-btn">Customized</button>
+                  </div>
+                </div>
+                
+                <!-- Latency Card -->
+                <div class="metric-studio-card">
+                  <div class="metric-studio-header">
+                    <span class="metric-studio-title">Latency</span>
+                    <span class="metric-studio-value">~1,440<span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">ms</span></span>
+                  </div>
+                  <div class="metric-bar-wrapper">
+                    <div class="metric-bar-segment" style="width: 40%; background: #f59e0b;" title="Transcriber: 40%"></div>
+                    <div class="metric-bar-segment" style="width: 35%; background: #3b82f6;" title="LLM Gen: 35%"></div>
+                    <div class="metric-bar-segment" style="width: 25%; background: #a855f7;" title="Vapi Core: 25%"></div>
+                  </div>
+                  <div class="preset-pill-group" style="visibility: hidden;">
+                    <button class="preset-pill-btn">Spacer</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Transcriber, Model, Voice Cards -->
+              <div class="studio-configs-grid">
+                <!-- Card 1: Transcriber -->
+                <div class="config-studio-card">
+                  <div class="config-studio-tag">Transcriber ✏️</div>
+                  <select id="studioTranscriberLang" class="input-field" style="width: 100%; padding: 4px; font-size: 11px; height: auto; background: rgba(0,0,0,0.3); color:#fff; border-color:var(--border-color); margin-top: 4px;" onchange="saveStudioSettings()">
+                    <option value="en">English 🇺🇸</option>
+                    <option value="hi">Hindi 🇮🇳</option>
+                    <option value="es">Spanish 🇪🇸</option>
+                  </select>
+                  <div class="config-studio-sub" style="margin-top: 4px;">Deepgram Nova-2</div>
+                  <div class="config-studio-stats" style="margin-top: auto;">
+                    <div class="config-stat-item">
+                      <span class="config-stat-lbl">Latency</span>
+                      <span class="config-stat-val">~120ms</span>
+                    </div>
+                    <div class="config-stat-item">
+                      <span class="config-stat-lbl">Accuracy</span>
+                      <span class="config-stat-val">98% Acc</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Card 2: Model -->
+                <div class="config-studio-card">
+                  <div class="config-studio-tag">Model 🤖</div>
+                  <select id="studioModelSelect" class="input-field" style="width: 100%; padding: 4px; font-size: 11px; height: auto; background: rgba(0,0,0,0.3); color:#fff; border-color:var(--border-color); margin-top: 4px;" onchange="saveStudioSettings()">
+                    <option value="gpt-4o-mini">GPT-4o-mini (OpenAI)</option>
+                    <option value="gpt-4o">GPT-4o (OpenAI)</option>
+                    <option value="gpt-3.5-turbo">GPT-3.5-turbo</option>
+                  </select>
+                  <div class="config-studio-sub" style="margin-top: 4px;">LLM Reasoning Engine</div>
+                  <div class="config-studio-stats" style="margin-top: auto;">
+                    <div class="config-stat-item">
+                      <span class="config-stat-lbl">Latency</span>
+                      <span class="config-stat-val">~600ms</span>
+                    </div>
+                    <div class="config-stat-item">
+                      <span class="config-stat-lbl">Intelligence</span>
+                      <span class="config-stat-val">15</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Card 3: Voice -->
+                <div class="config-studio-card">
+                  <div class="config-studio-tag">Voice 🔊</div>
+                  <select id="studioVoiceSelect" class="input-field" style="width: 100%; padding: 4px; font-size: 11px; height: auto; background: rgba(0,0,0,0.3); color:#fff; border-color:var(--border-color); margin-top: 4px;" onchange="saveStudioSettings()">
+                    <option value="custom">Assistant Default</option>
+                    <option value="elliot">Elliot (Male - Vapi)</option>
+                    <option value="will">Will (Male - Vapi)</option>
+                    <option value="paula">Paula (Female - Vapi)</option>
+                    <option value="savannah">Savannah (Female - Vapi)</option>
+                  </select>
+                  <div class="config-studio-sub" style="margin-top: 4px;">Voice Synthesis</div>
+                  <div class="config-studio-stats" style="margin-top: auto;">
+                    <div class="config-stat-item">
+                      <span class="config-stat-lbl">Latency</span>
+                      <span class="config-stat-val">~180ms</span>
+                    </div>
+                    <div class="config-stat-item">
+                      <span class="config-stat-lbl">Humanness</span>
+                      <span class="config-stat-val">95</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- First Message -->
+              <div class="studio-prompt-box">
+                <div class="prompt-box-header">
+                  <span class="prompt-box-title">First Message</span>
+                  <select style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 4px; outline: none;">
+                    <option>Assistant speaks first</option>
+                    <option>User speaks first</option>
+                  </select>
+                </div>
+                <input type="text" id="studioFirstMessage" class="input-field" value="Hello, this is Maya calling from Kapture Finance. Am I speaking with Rahul Sharma?" style="width: 100%;" oninput="saveStudioSettings()">
+              </div>
+
+              <!-- System Prompt -->
+              <div class="studio-prompt-box">
+                <div class="prompt-box-header">
+                  <span class="prompt-box-title">System Prompt</span>
+                  <div style="display: flex; gap: 6px;">
+                    <button class="btn-console" style="padding: 2px 8px; font-size: 10px;" onclick="loadSystemPrompt(true)">✨ Reload</button>
+                    <button class="btn-console" style="padding: 2px 8px; font-size: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: #fff;">Full</button>
+                  </div>
+                </div>
+                <textarea id="studioSystemPrompt" style="height: 280px; width: 100%; background: #06090e; color: #a5d6ff; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-family: monospace; font-size: 12px; resize: vertical; line-height: 1.5;" oninput="saveStudioSettings()"></textarea>
+              </div>
+
             </div>
 
-            <div class="glass-card" style="margin-top: 24px;">
-              <h2>Supported Tool Webhook Schemas</h2>
-              <div style="overflow-x: auto;">
-                <table class="docs-table">
-                  <thead>
-                    <tr>
-                      <th>Tool Name</th>
-                      <th>Expected Inputs</th>
-                      <th>Expected Webhook Output</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td><strong>verify_customer</strong></td>
-                      <td><code>account_id</code>, <code>verification_code</code></td>
-                      <td><code>{ verified: boolean, outstanding_balance: number, ... }</code></td>
-                    </tr>
-                    <tr>
-                      <td><strong>log_promise_to_pay</strong></td>
-                      <td><code>account_id</code>, <code>ptp_date</code>, <code>amount</code></td>
-                      <td><code>{ success: true, ptp_id: string }</code></td>
-                    </tr>
-                    <tr>
-                      <td><strong>send_payment_link</strong></td>
-                      <td><code>account_id</code>, <code>channel</code> (SMS/WhatsApp)</td>
-                      <td><code>{ success: true, link_id: string, payment_url: string }</code></td>
-                    </tr>
-                  </tbody>
-                </table>
+            <!-- Right Panel: Transcript and Chat Sidebar -->
+            <div class="studio-sidebar-panel">
+              <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding: 12px 16px;">
+                <div class="card-title" style="font-size: 13px; font-weight: 700;">💬 Transcript and Chat</div>
+              </div>
+              
+              <!-- Chat feed -->
+              <div class="transcript-feed" id="studioTranscriptFeed" style="flex: 1; overflow-y: auto; padding: 16px;">
+                <div style="color: var(--text-dim); font-size: 12px; text-align: center; padding-top: 40px;" id="studioEmptyTranscriptMsg">
+                  Click the green <b>📞 Talk</b> button to initiate a live WebRTC audio connection to the Vapi Assistant.
+                </div>
+              </div>
+              
+              <!-- Credentials block -->
+              <div class="studio-credentials-card">
+                <h4 style="margin: 0 0 10px 0; font-size: 11px; color: var(--accent-cyan); text-transform: uppercase;">Connection Settings</h4>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <div>
+                    <label style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 2px;">Vapi Public Key:</label>
+                    <input type="text" id="studioVapiPublicKey" class="input-field" placeholder="Enter Public Key (e.g. 562e...)" style="width: 100%; padding: 4px 8px; font-size: 11px; height: auto;" oninput="saveStudioSettings()">
+                  </div>
+                  <div>
+                    <label style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 2px;">Vapi Assistant ID:</label>
+                    <input type="text" id="studioVapiAssistantId" class="input-field" placeholder="Enter Assistant ID (e.g. 8f2b...)" style="width: 100%; padding: 4px 8px; font-size: 11px; height: auto;" oninput="saveStudioSettings()">
+                  </div>
+                  <div>
+                    <label style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 2px;">CRM / Webhook Base URL:</label>
+                    <input type="text" id="studioServerBaseUrl" class="input-field" placeholder="Defaults to same origin (e.g. http://localhost:3000)" style="width: 100%; padding: 4px 8px; font-size: 11px; height: auto;" oninput="saveStudioSettings()">
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -581,8 +730,56 @@ Your goal is to reach out to customers with overdue loan accounts, verify their 
       </div>
     </div>
 
-  </div>
+  <script>
+    // Global error logger to print exceptions inside the UI transcript feed
+    window.addEventListener('error', function(e) {
+      console.error('Captured global error:', e);
+      const feed = document.getElementById('studioTranscriptFeed');
+      if (feed) {
+        const errDiv = document.createElement('div');
+        errDiv.style.color = '#ef4444';
+        errDiv.style.background = 'rgba(239, 68, 68, 0.1)';
+        errDiv.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+        errDiv.style.padding = '8px 12px';
+        errDiv.style.margin = '10px 0';
+        errDiv.style.borderRadius = '6px';
+        errDiv.style.fontSize = '11px';
+        errDiv.innerText = 'JS Error: ' + e.message + ' (' + (e.filename ? e.filename.split('/').pop() : 'inline') + ':' + e.lineno + ')';
+        
+        // Remove empty message if present
+        const emptyMsg = document.getElementById('studioEmptyTranscriptMsg');
+        if (emptyMsg) emptyMsg.style.display = 'none';
+        
+        feed.appendChild(errDiv);
+        feed.scrollTop = feed.scrollHeight;
+      }
+    });
+  </script>
 
+  <script type="module">
+    // Dynamically import the ES module of Vapi SDK and expose it to window.Vapi
+    import('https://cdn.jsdelivr.net/npm/@vapi-ai/web@2.6.1/+esm')
+      .then(module => {
+        // Resolve the constructor class out of CJS/ESM wrappers
+        let vapiClass = module.default || module;
+        if (vapiClass && typeof vapiClass.default === 'function') {
+          vapiClass = vapiClass.default;
+        } else if (module.Vapi) {
+          vapiClass = module.Vapi;
+        }
+        window.Vapi = vapiClass;
+        console.log('[Vapi SDK] Loaded constructor successfully:', window.Vapi);
+      })
+      .catch(err => {
+        console.error('[Vapi SDK] Load failed:', err);
+        window.dispatchEvent(new ErrorEvent('error', {
+          error: err,
+          message: 'Failed to download Vapi Web SDK from CDN: ' + err.message,
+          filename: 'vapi-cdn-loader',
+          lineno: 1
+        }));
+      });
+  </script>
   <script src="app.js"></script>
 </body>
 </html>

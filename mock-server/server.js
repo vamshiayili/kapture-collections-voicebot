@@ -384,6 +384,21 @@ app.get('/api/ledger/state', (req, res) => {
   });
 });
 
+// GET /api/config/prompt endpoint to retrieve the Vapi system prompt text dynamically
+app.get('/api/config/prompt', (req, res) => {
+  const fs = require('fs');
+  const promptPath = path.join(__dirname, '..', 'vapi', 'system_prompt.txt');
+  fs.readFile(promptPath, 'utf8', (err, data) => {
+    if (err) {
+      console.error('[Config API] Could not read system prompt file:', err.message);
+      return res.json({
+        prompt: `# IDENTITY & ROLE\nYou are "Maya", an empathetic, professional, and compliant AI collections specialist for Kapture Finance.\nYour goal is to reach out to customers with overdue loan accounts, verify their identity securely, explain their account status politely, negotiate a realistic resolution, and record the outcome.\n\n# CRITICAL PRIVACY RULE\n- NEVER disclose balance, due dates, or creditor names prior to verified customer authentication.\n- GATE information strictly behind verification PIN checks.`
+      });
+    }
+    res.json({ prompt: data });
+  });
+});
+
 // Interactive Web UI for live browser testing
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

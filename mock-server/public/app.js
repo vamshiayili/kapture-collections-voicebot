@@ -577,6 +577,7 @@ function changeLanguage() {
 }
 
 function speakText(text) {
+  if (studioCallActive) return; // Prevent local voice speaking during Vapi WebRTC session
   if (!enableTTS || !synth) return;
   synth.cancel();
   
@@ -643,8 +644,13 @@ function appendMessage(sender, text) {
 async function callWebhook(toolName, args) {
   const callId = `call_${Date.now()}`;
   const payload = { message: { type: 'tool-calls', toolCalls: [{ id: callId, type: 'function', function: { name: toolName, arguments: args } }] } };
+  
+  // Read the CRM Webhook Base URL from configuration
+  const serverBase = (document.getElementById('studioServerBaseUrl')?.value || '').trim();
+  const url = (serverBase ? serverBase.replace(/\/$/, '') : '') + '/webhook';
+  
   try {
-    const res = await fetch('/webhook', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const data = await res.json();
     const parsedResult = JSON.parse(data.results[0].result);
     logToolCall(toolName, args, parsedResult);
@@ -1062,6 +1068,7 @@ userInputEl.addEventListener('keydown', (e) => {
 checkSession();
 syncDatabaseDetails();
 renderChips();
+loadStudioSettings();
 
 // Load persistent call history log ledger
 try {
@@ -1166,4 +1173,401 @@ async function triggerManualTool(toolName) {
   } else {
     appendMessage('system', `[CONSOLE] Tool execution failed.`);
   }
+}
+
+// ==========================================
+// VAPI AGENT STUDIO INTEGRATION LOGIC
+// ==========================================
+
+let studioCallActive = false;
+let studioVapiInstance = null;
+let studioSyncInterval = null;
+
+// Load settings on startup
+function loadStudioSettings() {
+  const savedKey = localStorage.getItem('kapture_studio_vapi_key');
+  let savedAssId = localStorage.getItem('kapture_studio_vapi_ass_id');
+  const savedBase = localStorage.getItem('kapture_studio_server_base');
+  const savedFirst = localStorage.getItem('kapture_studio_first_msg');
+  const savedPrompt = localStorage.getItem('kapture_studio_system_prompt');
+  
+  const savedLang = localStorage.getItem('kapture_studio_transcriber_lang');
+  const savedModel = localStorage.getItem('kapture_studio_model');
+  const savedVoice = localStorage.getItem('kapture_studio_voice');
+
+  // Self-heal: Clean up any saved placeholder text to ensure fallback works
+  if (savedAssId === 'Maya Assistant ID' || savedAssId === 'Enter Assistant ID') {
+    localStorage.removeItem('kapture_studio_vapi_ass_id');
+    savedAssId = null;
+  }
+
+  if (savedKey) document.getElementById('studioVapiPublicKey').value = savedKey;
+  
+  // Prefill the newly created Assistant ID as default fallback
+  document.getElementById('studioVapiAssistantId').value = savedAssId || 'e27f5da2-6991-4a5e-9f7e-591704ddf80f';
+  
+  // Prefill the Render server base URL as default fallback
+  document.getElementById('studioServerBaseUrl').value = savedBase || 'https://kapture-collections-voicebot-lxjv.onrender.com';
+  
+  if (savedFirst) document.getElementById('studioFirstMessage').value = savedFirst;
+  if (savedLang) document.getElementById('studioTranscriberLang').value = savedLang;
+  if (savedModel) document.getElementById('studioModelSelect').value = savedModel;
+  if (savedVoice) document.getElementById('studioVoiceSelect').value = savedVoice;
+  
+  if (savedPrompt) {
+    document.getElementById('studioSystemPrompt').value = savedPrompt;
+  } else {
+    loadSystemPrompt(false); // Fetch from backend server
+  }
+}
+
+// Save settings to LocalStorage
+function saveStudioSettings() {
+  const key = document.getElementById('studioVapiPublicKey').value.trim();
+  const assId = document.getElementById('studioVapiAssistantId').value.trim();
+  const base = document.getElementById('studioServerBaseUrl').value.trim();
+  const first = document.getElementById('studioFirstMessage').value;
+  const prompt = document.getElementById('studioSystemPrompt').value;
+  
+  const lang = document.getElementById('studioTranscriberLang').value;
+  const model = document.getElementById('studioModelSelect').value;
+  const voice = document.getElementById('studioVoiceSelect').value;
+
+  localStorage.setItem('kapture_studio_vapi_key', key);
+  localStorage.setItem('kapture_studio_vapi_ass_id', assId);
+  localStorage.setItem('kapture_studio_server_base', base);
+  localStorage.setItem('kapture_studio_first_msg', first);
+  localStorage.setItem('kapture_studio_system_prompt', prompt);
+  
+  localStorage.setItem('kapture_studio_transcriber_lang', lang);
+  localStorage.setItem('kapture_studio_model', model);
+  localStorage.setItem('kapture_studio_voice', voice);
+}
+
+// Load system prompt from backend
+async function loadSystemPrompt(forceReset = false) {
+  if (!forceReset && localStorage.getItem('kapture_studio_system_prompt')) {
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/config/prompt');
+    if (res.ok) {
+      const data = await res.json();
+      document.getElementById('studioSystemPrompt').value = data.prompt;
+      saveStudioSettings();
+    }
+  } catch (err) {
+    console.error('Error fetching system prompt:', err);
+  }
+}
+
+// Append messages to the Vapi Studio Chat feed
+function appendStudioMessage(sender, text) {
+  const feed = document.getElementById('studioTranscriptFeed');
+  if (!feed) return;
+
+  // Clear empty message prompt
+  const emptyMsg = document.getElementById('studioEmptyTranscriptMsg');
+  if (emptyMsg) emptyMsg.style.display = 'none';
+
+  const bubble = document.createElement('div');
+  bubble.className = `msg-bubble ${sender.toLowerCase()}`;
+  
+  const senderLabel = document.createElement('div');
+  senderLabel.className = 'msg-sender';
+  
+  if (sender === 'bot') {
+    senderLabel.innerText = '🤖 Assistant (Vapi)';
+  } else if (sender === 'system') {
+    senderLabel.innerText = '⚙️ System';
+  } else {
+    senderLabel.innerText = '👤 User';
+  }
+  
+  const textEl = document.createElement('div');
+  textEl.innerText = text;
+  
+  bubble.appendChild(senderLabel);
+  bubble.appendChild(textEl);
+  feed.appendChild(bubble);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+// Append tool executions to Vapi Studio Chat feed as badges
+function appendStudioToolBadge(toolName, success = true, detail = 'Completed successfully') {
+  const feed = document.getElementById('studioTranscriptFeed');
+  if (!feed) return;
+
+  const emptyMsg = document.getElementById('studioEmptyTranscriptMsg');
+  if (emptyMsg) emptyMsg.style.display = 'none';
+
+  const badge = document.createElement('div');
+  badge.className = `tool-status-badge ${success ? 'success' : 'info'}`;
+  
+  badge.innerHTML = `
+    <span class="tool-badge-icon">🔧</span>
+    <div class="tool-badge-details">
+      <strong>${toolName}</strong>
+      <span style="font-size: 11px; margin-left: 10px;">${detail}</span>
+      <span class="tool-badge-time">${new Date().toLocaleTimeString()}</span>
+    </div>
+  `;
+  
+  feed.appendChild(badge);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+// Missing local tool call logger function
+function logToolCall(name, args, result) {
+  if (!toolFeedEl) return;
+  
+  // Clear any default empty message
+  if (toolFeedEl.querySelector('.text-dim') || toolFeedEl.innerText.includes('No tool triggers')) {
+    toolFeedEl.innerHTML = '';
+  }
+
+  const toolItem = document.createElement('div');
+  toolItem.className = 'tool-item';
+
+  const toolHeader = document.createElement('div');
+  toolHeader.className = 'tool-header';
+  
+  const title = document.createElement('span');
+  title.innerText = `🛠️ ${name}`;
+  
+  const time = document.createElement('span');
+  time.style.color = 'var(--text-muted)';
+  time.innerText = new Date().toLocaleTimeString();
+  
+  toolHeader.appendChild(title);
+  toolHeader.appendChild(time);
+  toolItem.appendChild(toolHeader);
+
+  const argsPre = document.createElement('pre');
+  argsPre.className = 'tool-json';
+  argsPre.innerText = JSON.stringify(args, null, 2);
+  toolItem.appendChild(argsPre);
+
+  const resPre = document.createElement('pre');
+  resPre.className = 'tool-json';
+  resPre.innerText = JSON.stringify(result, null, 2);
+  toolItem.appendChild(resPre);
+
+  toolFeedEl.appendChild(toolItem);
+  toolFeedEl.scrollTop = toolFeedEl.scrollHeight;
+  
+  // Also push to Vapi Studio Chat feed if studio tab is active/used
+  appendStudioToolBadge(name, !result.error, result.error ? `Failed: ${result.error}` : 'Completed successfully');
+}
+
+// Synchronize CRM database state with the mock backend
+async function syncStudioLedger() {
+  const serverBase = document.getElementById('studioServerBaseUrl').value.trim();
+  const url = (serverBase ? serverBase.replace(/\/$/, '') : '') + '/api/ledger/state';
+  
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const state = await res.json();
+    
+    // Sync outstanding balance and verification state
+    const account = state.accounts[customerAccount.account_id] || state.accounts['ACC-80291'];
+    if (account) {
+      customerAccount.balance = account.outstanding_balance;
+      
+      const verifyLog = state.logs.find(log => log.account_id === customerAccount.account_id && log.transaction_id.startsWith('VERIFY') && log.status === 'SUCCESS');
+      if (verifyLog) {
+        isCustomerVerified = true;
+        authStatusBadgeEl.className = 'account-badge-box auth-unlocked';
+        accStatusTextEl.innerText = translations[selectedLang].authVerified;
+        accBalanceEl.innerText = fmtMoney(customerAccount.balance);
+        accDueDateEl.innerText = customerAccount.dueDate;
+        
+        if (currentStage === 1) {
+          updateStage(2);
+        }
+      }
+      
+      if (account.payment_link_sent && currentStage < 3) {
+        updateStage(3);
+      }
+      
+      if (account.ptp_date) {
+        if (currentStage < 4) {
+          updateStage(4);
+        }
+        updateRecoveryStatistics('PTP_AGREED', 8499.0 - account.outstanding_balance);
+      }
+      
+      if (account.last_disposition) {
+        activeCallDisposition = account.last_disposition;
+      }
+      
+      syncDatabaseDetails();
+    }
+  } catch (err) {
+    console.error('CRM sync error:', err);
+  }
+}
+
+// Setup Vapi WebRTC events
+function setupStudioVapiEvents() {
+  if (!studioVapiInstance) return;
+
+  const talkBtn = document.getElementById('studioTalkBtn');
+  const talkIcon = document.getElementById('studioTalkIcon');
+  const talkText = document.getElementById('studioTalkText');
+
+  studioVapiInstance.on('call-start', () => {
+    console.log('[Vapi Studio] Call started');
+    studioCallActive = true;
+    
+    // UI update
+    talkBtn.classList.add('active');
+    talkIcon.innerText = '🔴';
+    talkText.innerText = 'Stop';
+    
+    appendStudioMessage('system', 'Outbound call connected. Vapi Live Assistant speaking...');
+    
+    // Start database polling to sync CRM state during the call
+    clearInterval(studioSyncInterval);
+    studioSyncInterval = setInterval(syncStudioLedger, 2500);
+  });
+
+  studioVapiInstance.on('call-end', () => {
+    console.log('[Vapi Studio] Call ended');
+    studioCallActive = false;
+    
+    talkBtn.classList.remove('active');
+    talkIcon.innerText = '📞';
+    talkText.innerText = 'Talk';
+    
+    appendStudioMessage('system', 'Outbound call disconnected.');
+    
+    clearInterval(studioSyncInterval);
+    syncStudioLedger(); // final sync
+  });
+
+  studioVapiInstance.on('speech-start', () => {
+    voiceWaveEl.classList.add('wave-active');
+  });
+
+  studioVapiInstance.on('speech-end', () => {
+    voiceWaveEl.classList.remove('wave-active');
+  });
+
+  studioVapiInstance.on('message', (message) => {
+    if (message.type === 'transcript' && message.transcriptType === 'final') {
+      const sender = message.role === 'assistant' ? 'bot' : 'user';
+      appendStudioMessage(sender, message.transcript);
+    }
+    
+    if (message.type === 'tool-calls') {
+      setTimeout(syncStudioLedger, 500);
+    }
+  });
+
+  studioVapiInstance.on('error', (err) => {
+    console.error('[Vapi Studio Error]', err);
+    let errMsg = '';
+    if (err && typeof err === 'object') {
+      errMsg = err.message || err.error?.message || err.error || JSON.stringify(err);
+    } else {
+      errMsg = String(err);
+    }
+    appendStudioMessage('system', `Connection Error: ${errMsg}`);
+    
+    studioCallActive = false;
+    talkBtn.classList.remove('active');
+    talkIcon.innerText = '📞';
+    talkText.innerText = 'Talk';
+    clearInterval(studioSyncInterval);
+  });
+}
+
+// Toggle WebRTC call connection from Vapi Agent Studio
+function toggleStudioCall() {
+  if (studioCallActive) {
+    if (studioVapiInstance) {
+      studioVapiInstance.stop();
+    }
+    return;
+  }
+
+  // Validate that Vapi library has loaded successfully
+  if (!window.Vapi) {
+    alert('The Vapi SDK library is still loading or failed to load from CDN. Please check your internet connection or console errors.');
+    return;
+  }
+
+  const key = document.getElementById('studioVapiPublicKey').value.trim();
+  const assId = document.getElementById('studioVapiAssistantId').value.trim();
+  
+  if (!key || !assId) {
+    alert('Please enter your Vapi Public Key and Vapi Assistant ID in the Connection Settings block. Scroll down the right-hand panel to access these inputs.');
+    return;
+  }
+
+  saveStudioSettings();
+
+  if (!studioVapiInstance) {
+    studioVapiInstance = new window.Vapi(key);
+    setupStudioVapiEvents();
+  }
+
+  document.getElementById('studioTranscriptFeed').innerHTML = '';
+  appendStudioMessage('system', `Dialing outbound collections lines for ${customerAccount.name}...`);
+
+  const firstMsg = document.getElementById('studioFirstMessage').value.trim();
+  const sysPrompt = document.getElementById('studioSystemPrompt').value;
+  
+  const selectedLang = document.getElementById('studioTranscriberLang').value;
+  const selectedModel = document.getElementById('studioModelSelect').value;
+  const selectedVoice = document.getElementById('studioVoiceSelect').value;
+
+  // Build model configuration
+  const modelConfig = {
+    provider: 'openai',
+    model: selectedModel,
+    messages: [
+      { role: 'system', content: sysPrompt }
+    ]
+  };
+
+  // Build transcriber configuration
+  const transcriberConfig = {
+    provider: 'deepgram',
+    model: 'nova-2',
+    language: selectedLang
+  };
+
+  // Start Vapi Call with dynamic assistant configurations overriding
+  const options = {
+    customer: {
+      number: customerAccount.phone,
+      name: customerAccount.name
+    },
+    assistant: {
+      firstMessage: firstMsg,
+      model: modelConfig,
+      transcriber: transcriberConfig,
+      variableValues: {
+        customer_name: customerAccount.name,
+        account_id: customerAccount.account_id,
+        outstanding_balance: customerAccount.balance,
+        due_date: customerAccount.dueDate
+      }
+    }
+  };
+
+  // Optionally override the Voice parameter if custom is not selected
+  if (selectedVoice !== 'custom') {
+    options.assistant.voice = {
+      provider: 'vapi',
+      voiceId: selectedVoice
+    };
+  }
+
+  studioVapiInstance.start(assId, options);
 }
