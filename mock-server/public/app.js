@@ -1501,13 +1501,21 @@ function toggleStudioCall() {
     return;
   }
 
-  const key = document.getElementById('studioVapiPublicKey').value.trim();
-  const assId = document.getElementById('studioVapiAssistantId').value.trim();
+  let key = document.getElementById('studioVapiPublicKey').value.trim();
+  let assId = document.getElementById('studioVapiAssistantId').value.trim();
+  
+  // Defensive: Strip trailing periods from copy-paste mistakes
+  if (key.endsWith('.')) key = key.slice(0, -1);
+  if (assId.endsWith('.')) assId = assId.slice(0, -1);
   
   if (!key || !assId) {
     alert('Please enter your Vapi Public Key and Vapi Assistant ID in the Connection Settings block. Scroll down the right-hand panel to access these inputs.');
     return;
   }
+
+  // Update input values in case they were modified
+  document.getElementById('studioVapiPublicKey').value = key;
+  document.getElementById('studioVapiAssistantId').value = assId;
 
   saveStudioSettings();
 
