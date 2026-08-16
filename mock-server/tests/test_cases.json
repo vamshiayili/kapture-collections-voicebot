@@ -1,0 +1,414 @@
+{
+  "description": "Comprehensive Test Cases for Kapture Collections Voicebot (Maya) Webhook Tools",
+  "test_cases": [
+    {
+      "id": "TC-01",
+      "tool": "verify_customer",
+      "description": "Valid PIN (1234) for Rahul Sharma (ACC-88392) should return verified=true, name='Rahul Sharma', currency='INR', and balance=8499",
+      "payload": {
+        "message": {
+          "type": "tool-calls",
+          "toolCalls": [
+            {
+              "id": "call_rahul_001",
+              "type": "function",
+              "function": {
+                "name": "verify_customer",
+                "arguments": {
+                  "account_id": "ACC-88392",
+                  "verification_code": "1234"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "verified": true,
+        "account_id": "ACC-88392",
+        "customer_name": "Rahul Sharma",
+        "customer_phone": "+91 98765 43210",
+        "outstanding_balance": 8499,
+        "currency": "INR",
+        "due_date": "2026-08-03"
+      }
+    },
+    {
+      "id": "TC-02",
+      "tool": "verify_customer",
+      "description": "Invalid PIN (9999) for Rahul Sharma (ACC-88392) should fail verification and return verified=false",
+      "payload": {
+        "message": {
+          "type": "tool-calls",
+          "toolCalls": [
+            {
+              "id": "call_rahul_002",
+              "type": "function",
+              "function": {
+                "name": "verify_customer",
+                "arguments": {
+                  "account_id": "ACC-88392",
+                  "verification_code": "9999"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "verified": false,
+        "account_id": "ACC-88392"
+      }
+    },
+    {
+      "id": "TC-03",
+      "tool": "verify_customer",
+      "description": "Valid PIN (1234) for default account (ACC-80291) should return verified=true and customer details for Alex Johnson in USD",
+      "payload": {
+        "message": {
+          "type": "tool-calls",
+          "toolCalls": [
+            {
+              "id": "call_alex_001",
+              "type": "function",
+              "function": {
+                "name": "verify_customer",
+                "arguments": {
+                  "account_id": "ACC-80291",
+                  "verification_code": "1234"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "verified": true,
+        "account_id": "ACC-80291",
+        "customer_name": "Alex Johnson",
+        "customer_phone": "+1 555-019-9283",
+        "outstanding_balance": 1450,
+        "currency": "USD"
+      }
+    },
+    {
+      "id": "TC-04",
+      "tool": "log_promise_to_pay",
+      "description": "Log Promise to Pay for Rahul Sharma (ACC-88392) for overdue amount ₹8,499 on Aug 25, 2026",
+      "payload": {
+        "message": {
+          "type": "tool-calls",
+          "toolCalls": [
+            {
+              "id": "call_rahul_003",
+              "type": "function",
+              "function": {
+                "name": "log_promise_to_pay",
+                "arguments": {
+                  "account_id": "ACC-88392",
+                  "ptp_date": "2026-08-25",
+                  "amount": 8499.00
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "success": true,
+        "account_id": "ACC-88392",
+        "amount": 8499,
+        "confirmed_date": "2026-08-25"
+      }
+    },
+    {
+      "id": "TC-05",
+      "tool": "send_payment_link",
+      "description": "Send payment link to Rahul Sharma (ACC-88392) via WhatsApp, returning localized domain .in",
+      "payload": {
+        "message": {
+          "type": "tool-calls",
+          "toolCalls": [
+            {
+              "id": "call_rahul_004",
+              "type": "function",
+              "function": {
+                "name": "send_payment_link",
+                "arguments": {
+                  "account_id": "ACC-88392",
+                  "channel": "WhatsApp"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "success": true,
+        "account_id": "ACC-88392",
+        "channel": "WhatsApp"
+      }
+    },
+    {
+      "id": "TC-06",
+      "tool": "mark_disposition",
+      "description": "Mark call disposition for Rahul Sharma as PTP_AGREED with custom notes",
+      "payload": {
+        "message": {
+          "type": "tool-calls",
+          "toolCalls": [
+            {
+              "id": "call_rahul_005",
+              "type": "function",
+              "function": {
+                "name": "mark_disposition",
+                "arguments": {
+                  "account_id": "ACC-88392",
+                  "status": "PTP_AGREED",
+                  "notes": "Rahul Sharma agreed to pay full amount ₹8,499 on August 25th via UPI link."
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "success": true,
+        "account_id": "ACC-88392",
+        "disposition_status": "PTP_AGREED"
+      }
+    },
+    {
+      "id": "TC-07",
+      "tool": "escalate_to_agent",
+      "description": "Escalate call for Rahul Sharma to live human agent due to financial hardship",
+      "payload": {
+        "message": {
+          "type": "tool-calls",
+          "toolCalls": [
+            {
+              "id": "call_rahul_006",
+              "type": "function",
+              "function": {
+                "name": "escalate_to_agent",
+                "arguments": {
+                  "account_id": "ACC-88392",
+                  "reason": "Financial Hardship",
+                  "notes": "Customer lost job, requesting loan restructuring options."
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "success": true,
+        "account_id": "ACC-88392",
+        "reason": "Financial Hardship"
+      }
+    },
+    {
+      "id": "TC-08",
+      "tool": "mark_disposition",
+      "description": "Mark call disposition for Rahul Sharma as ALREADY_PAID (Already paid scenario)",
+      "payload": {
+        "message": {
+          "type": "tool-calls",
+          "toolCalls": [
+            {
+              "id": "call_rahul_007",
+              "type": "function",
+              "function": {
+                "name": "mark_disposition",
+                "arguments": {
+                  "account_id": "ACC-88392",
+                  "status": "ALREADY_PAID",
+                  "notes": "Rahul Sharma claims payment already completed yesterday via GPay."
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "success": true,
+        "account_id": "ACC-88392",
+        "disposition_status": "ALREADY_PAID"
+      }
+    },
+    {
+      "id": "TC-09",
+      "tool": "mark_disposition",
+      "description": "Mark call disposition for Rahul Sharma as DO_NOT_CALL (Opt-out request scenario)",
+      "payload": {
+        "message": {
+          "type": "tool-calls",
+          "toolCalls": [
+            {
+              "id": "call_rahul_008",
+              "type": "function",
+              "function": {
+                "name": "mark_disposition",
+                "arguments": {
+                  "account_id": "ACC-88392",
+                  "status": "DO_NOT_CALL",
+                  "notes": "Rahul Sharma requested to register opt-out from collections dial list."
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "success": true,
+        "account_id": "ACC-88392",
+        "disposition_status": "DO_NOT_CALL"
+      }
+    },
+    {
+      "id": "TC-10",
+      "tool": "mark_disposition",
+      "description": "Mark call disposition for Rahul Sharma as DISPUTED with audit ledger notes",
+      "payload": {
+        "message": {
+          "type": "tool-calls",
+          "toolCalls": [
+            {
+              "id": "call_rahul_009",
+              "type": "function",
+              "function": {
+                "name": "mark_disposition",
+                "arguments": {
+                  "account_id": "ACC-88392",
+                  "status": "DISPUTED",
+                  "notes": "Rahul Sharma disputes the outstanding interest fee of ₹499."
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "success": true,
+        "account_id": "ACC-88392",
+        "disposition_status": "DISPUTED"
+      }
+    },
+    {
+      "id": "TC-11",
+      "tool": "mark_disposition",
+      "description": "Mark call disposition for Rahul Sharma as WRONG_PERSON (Wrong number opt-out)",
+      "payload": {
+        "message": {
+          "type": "tool-calls",
+          "toolCalls": [
+            {
+              "id": "call_rahul_010",
+              "type": "function",
+              "function": {
+                "name": "mark_disposition",
+                "arguments": {
+                  "account_id": "ACC-88392",
+                  "status": "WRONG_PERSON",
+                  "notes": "Customer answered but claims they do not know Rahul Sharma."
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "success": true,
+        "account_id": "ACC-88392",
+        "disposition_status": "WRONG_PERSON"
+      }
+    },
+    {
+      "id": "TC-12",
+      "tool": "escalate_to_agent",
+      "description": "Escalate call for Rahul Sharma to live human agent due to debt dispute details",
+      "payload": {
+        "message": {
+          "type": "tool-calls",
+          "toolCalls": [
+            {
+              "id": "call_rahul_011",
+              "type": "function",
+              "function": {
+                "name": "escalate_to_agent",
+                "arguments": {
+                  "account_id": "ACC-88392",
+                  "reason": "Dispute",
+                  "notes": "Customer demands full account ledger audit statements."
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "success": true,
+        "account_id": "ACC-88392",
+        "reason": "Dispute"
+      }
+    },
+    {
+      "id": "TC-13",
+      "tool": "log_promise_to_pay",
+      "description": "Log Promise to Pay for US customer Alex Johnson (ACC-80291) for overdue amount $1,450",
+      "payload": {
+        "message": {
+          "type": "tool-calls",
+          "toolCalls": [
+            {
+              "id": "call_alex_002",
+              "type": "function",
+              "function": {
+                "name": "log_promise_to_pay",
+                "arguments": {
+                  "account_id": "ACC-80291",
+                  "ptp_date": "2026-08-20",
+                  "amount": 1450.00
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "success": true,
+        "account_id": "ACC-80291",
+        "amount": 1450,
+        "confirmed_date": "2026-08-20"
+      }
+    },
+    {
+      "id": "TC-14",
+      "tool": "send_payment_link",
+      "description": "Send payment link to US customer Alex Johnson (ACC-80291) via SMS, returning localized .com domain",
+      "payload": {
+        "message": {
+          "type": "tool-calls",
+          "toolCalls": [
+            {
+              "id": "call_alex_003",
+              "type": "function",
+              "function": {
+                "name": "send_payment_link",
+                "arguments": {
+                  "account_id": "ACC-80291",
+                  "channel": "SMS"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "expected_output": {
+        "success": true,
+        "account_id": "ACC-80291",
+        "channel": "SMS"
+      }
+    }
+  ]
+}

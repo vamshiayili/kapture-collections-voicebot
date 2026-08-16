@@ -1,0 +1,134 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "verify_customer",
+      "description": "Authenticates the customer identity using their account ID and verification PIN/code before disclosing any sensitive debt or account balance information.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "description": "Unique identifier of the customer loan account (e.g. ACC-10928)."
+          },
+          "verification_code": {
+            "type": "string",
+            "description": "The 4-digit verification code or birth year provided by the customer (e.g., 1234, 1995)."
+          }
+        },
+        "required": ["account_id", "verification_code"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "log_promise_to_pay",
+      "description": "Records a customer promise to pay (PTP) for a specific date and amount into the collections system.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "description": "Unique identifier of the customer loan account."
+          },
+          "ptp_date": {
+            "type": "string",
+            "description": "Agreed payment date in YYYY-MM-DD format (e.g. 2026-08-20)."
+          },
+          "amount": {
+            "type": "number",
+            "description": "The monetary amount the customer promised to pay (e.g. 500.00)."
+          }
+        },
+        "required": ["account_id", "ptp_date", "amount"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "send_payment_link",
+      "description": "Sends a secure digital payment checkout link to the customer via SMS, WhatsApp, or BOTH, with their preferred payment election method preset.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "description": "Unique identifier of the customer loan account."
+          },
+          "channel": {
+            "type": "string",
+            "enum": ["SMS", "WhatsApp", "BOTH"],
+            "description": "The communication channel to dispatch the payment link through."
+          },
+          "payment_method": {
+            "type": "string",
+            "enum": ["Debit Card", "ACH", "Digital Wallet"],
+            "description": "The customer's preferred payment election method to pre-fill the checkout link with."
+          }
+        },
+        "required": ["account_id", "channel"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "mark_disposition",
+      "description": "Updates the final call outcome status and notes in the CRM/Collections system for reporting and follow-up.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "description": "Unique identifier of the customer loan account."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PTP_AGREED",
+              "ALREADY_PAID",
+              "DISPUTED",
+              "HARDSHIP_ESCALATED",
+              "WRONG_PERSON",
+              "DO_NOT_CALL",
+              "NO_RESPONSE"
+            ],
+            "description": "The standardized call disposition category."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Summary notes describing the call discussion and borrower agreement/situation."
+          }
+        },
+        "required": ["account_id", "status"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "escalate_to_agent",
+      "description": "Creates an escalation ticket to transfer or route the customer to a human collections specialist.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "description": "Unique identifier of the customer loan account."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for escalation (e.g. 'Financial Hardship', 'Disputed Loan Amount', 'Customer Requested Human Agent')."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Contextual details and history to assist the human agent."
+          }
+        },
+        "required": ["account_id", "reason"]
+      }
+    }
+  }
+]
