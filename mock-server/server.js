@@ -14,7 +14,11 @@ const PORT = process.env.PORT || 3000;
 // Middleware configuration
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  }
+}));
 
 // Request logging middleware
 app.use((req, res, next) => {
