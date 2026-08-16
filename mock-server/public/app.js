@@ -1550,32 +1550,26 @@ function toggleStudioCall() {
     language: selectedLang
   };
 
-  // Start Vapi Call with dynamic assistant configurations overriding
-  const options = {
-    customer: {
-      number: customerAccount.phone,
-      name: customerAccount.name
-    },
-    assistant: {
-      firstMessage: firstMsg,
-      model: modelConfig,
-      transcriber: transcriberConfig,
-      variableValues: {
-        customer_name: customerAccount.name,
-        account_id: customerAccount.account_id,
-        outstanding_balance: customerAccount.balance,
-        due_date: customerAccount.dueDate
-      }
+  // Start Vapi Call with dynamic assistant configurations overriding directly
+  const overrides = {
+    firstMessage: firstMsg,
+    model: modelConfig,
+    transcriber: transcriberConfig,
+    variableValues: {
+      customer_name: customerAccount.name,
+      account_id: customerAccount.account_id,
+      outstanding_balance: customerAccount.balance,
+      due_date: customerAccount.dueDate
     }
   };
 
   // Optionally override the Voice parameter if custom is not selected
   if (selectedVoice !== 'custom') {
-    options.assistant.voice = {
+    overrides.voice = {
       provider: 'vapi',
       voiceId: selectedVoice
     };
   }
 
-  studioVapiInstance.start(assId, options);
+  studioVapiInstance.start(assId, overrides);
 }
